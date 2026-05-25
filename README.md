@@ -23,3 +23,4 @@ Managed via `/feature-context` commands in Claude Code:
 | Epic | Title | Status | Last Refreshed |
 |---|---|---|---|
 | [HI-5039](features/HI-5039/CONTEXT.md) | HI Merchant Multi-Account | pre-implementation | 2026-05-23 |
+| [HI-6863](features/HI-6863/CONTEXT.md) | Merchant Reporting Improvements | in-development | 2026-05-24 |
