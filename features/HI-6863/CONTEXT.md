@@ -5,7 +5,7 @@ spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/5301993558
 status: in-development
 last_refreshed: 2026-05-24
 test_checklist_ticket: HI-7137
-confluence_page_id: ""
+confluence_page_id: "5683183849"
 ---
 
 # HI-6863 — Merchant Reporting Improvements
