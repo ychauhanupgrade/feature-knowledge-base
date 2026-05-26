@@ -5,7 +5,7 @@ spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/4697620576/HI+Bor
 status: in-validation
 last_refreshed: 2026-05-26
 test_checklist_ticket: HI-7146
-confluence_page_id: ""
+confluence_page_id: "5686558776"
 ---
 
 # HI-5611 — HI Borrower One-Time Payment & Pre-payment Scheduling in Agent Tool
