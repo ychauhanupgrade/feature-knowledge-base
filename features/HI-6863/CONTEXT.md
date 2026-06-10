@@ -3,7 +3,7 @@ epic: HI-6863
 title: Merchant Reporting Improvements
 spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/5301993558
 status: in-development
-last_refreshed: 2026-06-09
+last_refreshed: 2026-06-10
 test_checklist_ticket: HI-7137
 confluence_page_id: "5683183849"
 ---
@@ -44,7 +44,7 @@ Backend changes live in `hi-merchant-reporting-srvc` (PR#2265, merged) — cover
 | Merchant Transactions CSV: include-pending option sorted by request date | Done | Done | IN DEV | HI-6911; E2E 65506 (schedule All Draws/pending), 62003, 66449 |
 | Parent (Holding Co.) Transactions CSV: funded-only default, sorted by funding date | Done | Done | IN DEV | HI-6912; E2E 62001/62004 |
 | Parent Transactions CSV: include-pending option | Done | Done | IN DEV | HI-6912; E2E 62004 (Pending → legacy TRANSACTION report) |
-| Merchant Transactions CSV: `merchant_memo` column present with correct value | Done | Done | PARTIAL | Req 2; memo column 18 verified against GQL in Parent CSV test 51267; no explicit MERCHANT-portal CSV memo assertion yet |
+| Merchant Transactions CSV: `merchant_memo` column present with correct value | Done | Done | IN DEV | Req 2; **NEW** merchant-portal E2E 66526 asserts memo column present in DRAWS CSV + cell value matches GQL `paymentRequestMerchantMemo`; parent-side covered by 51267 (column 18). Gap closed. |
 | Parent Overview Report: multi-group merchant → single row, "Multiple Groups" label | Done | Done | IN DEV | HI-6912; E2E 66453 |
 | Parent Sales Enrollment Report: Parent Sales rep → Parent name (not null) | Done | Done | IN DEV | HI-6912; E2E 66452 |
 | Merchant Transactions UI + CSV: null Lead Ref Number → "----" (not "No Referral") | N/A | N/A | IN DEV | HI-6875; E2E 65372 (dash placeholder, not "No Referral") |
@@ -65,7 +65,7 @@ Backend changes live in `hi-merchant-reporting-srvc` (PR#2265, merged) — cover
 - [LOW] **HI-7027 has no identified FE implementation PR** — ticket is now Closed and E2E exists (62003/66449/62004), but the front-end PR was never surfaced (Jira Dev-panel auth blocked). Cosmetic gap only; confirm with Marcus Silva if needed.
 
 ### Medium — E2E partials to harden
-- [MEDIUM] **Req 2: merchant_memo in MERCHANT-portal CSV** — memo column is verified at the Parent CSV level (51267, column 18) but there is no explicit assertion of the memo column in the merchant-portal Transactions CSV download. Add a merchant-side memo-column check (the spec's Req 2 targets the merchant download specifically).
+- [RESOLVED 2026-06-10] **Req 2: merchant_memo in MERCHANT-portal CSV** — closed by new E2E 66526 (`verifyMerchantTransactionsCsvIncludesMerchantMemoColumnTest`), which asserts the memo column is present in the merchant-portal DRAWS CSV download and the cell value matches the GQL source memo. No further action needed beyond running the suite.
 - [LOW] **HI-7304: success-banner copy** — banner is exercised by existing scheduling tests (52537–52543) but no test asserts the exact updated copy. Add a copy assertion if the wording is contractually important. (See launch 1769611 RCA — prior banner-copy failures were preprod UI deploy lag, not assertion bugs.)
 
 ### Low — Future tech-debt (no implementation yet, not QA-blocking)
@@ -73,7 +73,7 @@ Backend changes live in `hi-merchant-reporting-srvc` (PR#2265, merged) — cover
 - [LOW] **HI-7297 (Open)** — RidgeTop DAG consolidation; includes a CSV change (date → datetime) and merchant-memo addition pending RidgeTop confirmation. No impl PR. Watch for CSV-format regressions when implemented.
 
 ### Spec Requirement Gaps
-- [MEDIUM] **Req 2 merchant-portal memo column** — see above; the only spec sub-requirement without direct merchant-side E2E coverage. All other spec requirements (1, 3, 4, 5, 6 incl. prequal 30/60/90, per-tab independence) now have IN DEV E2E coverage in qa-automation#35131.
+- **None outstanding.** As of 2026-06-10, all spec requirements (1, 2, 3, 4, 5, 6 incl. prequal 30/60/90 and per-tab independence) have IN DEV E2E coverage in qa-automation#35131 for both merchant and parent portals. Req 2 merchant-portal memo column — previously the only sub-requirement without direct merchant-side coverage — is now covered by 66526.
 
 ## PR Analysis
 
@@ -109,6 +109,7 @@ Backend changes live in `hi-merchant-reporting-srvc` (PR#2265, merged) — cover
 - 65506 `verifyAdminCanScheduleAllDrawsReportTest` — schedule "All Draws (pending)" report type (Req 1 include-pending)
 - 62003 `verifyDrawsPendingFundingTypePersistsLegacyDrawsTest` — Pending persists legacy DRAWS scheduled report (Req 1 / HI-7027)
 - 66449 `verifyDrawsPendingFundingTypeGeneratesLegacyCsvReportTest` — Pending generates legacy DRAWS CSV (Req 1 / HI-7027)
+- 66526 `verifyMerchantTransactionsCsvIncludesMerchantMemoColumnTest` (**NEW 2026-06-10**) — merchant-portal DRAWS CSV download includes `merchant_memo` column AND cell value matches GQL `paymentRequestMerchantMemo` (Req 2 merchant-side). `@Jira("HI-6863")`, `@LimitRunToEnv(stage, preprod)`. Closes the prior Req 2 merchant-portal gap.
 
 **New E2E tests — Parent** (`HomeImprovementParentReportingTest`):
 - 62001 `verifyTransactionDateRangeLabelChangesByFundingTypeTest` — TRANSACTION date-range label reflects funding type (Req 1/6 parent)
@@ -119,7 +120,7 @@ Backend changes live in `hi-merchant-reporting-srvc` (PR#2265, merged) — cover
 - 66454 `verifyCsvModalDateRangeLabelsPerReportTypeTest` — per-report date-range labels + prequal options in parent CSV modal (Req 6 parent)
 - 51267 `verifyCSVDownload` (pre-existing, extended) — asserts Merchant Memo column 18 against GQL (Req 2, parent-side)
 
-**UT/IT**: N/A (E2E repo). **Coverage verdict**: IN DEV — covers Req 1, 3, 4, 5, 6 for both portals; Req 2 partial (parent-side memo only).
+**UT/IT**: N/A (E2E repo). **Coverage verdict**: IN DEV — covers Req 1, 2, 3, 4, 5, 6 for both portals. Req 2 now has direct merchant-portal coverage (66526) in addition to parent-side (51267).
 
 ## Key Decisions
 
@@ -138,6 +139,6 @@ Backend changes live in `hi-merchant-reporting-srvc` (PR#2265, merged) — cover
 - **Primary service under test**: `hi-merchant-reporting-srvc` (GraphQL API) — use `HiMerchantReportingService` / `HiMerchantReportingServiceUtils`.
 - **Test classes**: `HomeImprovementMerchantReportingTest`, `HomeImprovementParentReportingTest`; page objects under `playwright/pages/homeimprovement/merchantdashboard/reporting/` and `playwright/pages/homeimprovement/parent/`.
 - **REAL DATA ONLY rule** (see memory) — reporting-table inserts must use real funded/draw data, no synthetic rows; multi-group SQL uses `to_jsonb`; null fields render as em-dash.
-- **Remaining work**: (1) add merchant-portal CSV memo-column assertion (Req 2); (2) optionally assert HI-7304 banner copy; (3) close out HI-6911 by running the suite on the validation env.
+- **Remaining work**: (1) ~~add merchant-portal CSV memo-column assertion (Req 2)~~ — DONE 2026-06-10 via 66526; (2) optionally assert HI-7304 banner copy; (3) close out HI-6911 by running the suite on the validation env.
 - **Jira dev info script blocked**: `jira-basic-auth` keychain entry is MISSING (lookup returns "item could not be found"). PR discovery this refresh used `gh search prs` + Atlassian remote-links instead. Fix: `security add-generic-password -a "$USER" -s "jira-basic-auth" -w "$(echo -n 'ychauhan@upgrade.com:YOUR_API_TOKEN' | base64)"`
 - **HI-7027 FE PR gap**: front-end "Select funding type" PR never surfaced (Dev-panel auth blocked); ticket is Closed and E2E exists, so this is cosmetic only.
