@@ -5,7 +5,7 @@ spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/4923457872/Home+I
 status: in-development
 last_refreshed: 2026-08-20
 test_checklist_ticket: HI-7886
-confluence_page_id: PENDING
+confluence_page_id: "5952569412"
 ---
 
 # HI-6336 — Merchant Base Grade
