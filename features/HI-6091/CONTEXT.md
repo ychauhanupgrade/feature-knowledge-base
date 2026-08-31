@@ -4,7 +4,7 @@ title: Cross Sell
 spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/4494065719
 spec_url_2: https://credify.atlassian.net/wiki/spaces/PROD/pages/5856264352
 status: in-development
-last_refreshed: 2026-08-21
+last_refreshed: 2026-08-31
 test_checklist_ticket: HI-6478
 confluence_page_id: "5605752862"
 ---
@@ -17,7 +17,9 @@ The Cross Sell program offers existing Upgrade customers (PL, PCL, Deposit, HI, 
 
 **V1 is now fully built and merged** (`qa-automation#34134` merged to master 2026-07-24; borrower-side FE migrated to a brand-new standalone repo, `home-improvement-borrower-dashboard-ui`, created 2026-06-24). **However, the entire V1 cross-sell E2E suite (9 test classes / 22 `@Test` methods under `com.upgrade.tests.regression.homeimprovement.crosssell`, plus `HomeImprovementCrossSellBrazeEventTest`) carries `@SkipUntil(envToSkip = {"main","stage","preprod"}, skipBefore = "2050-12-31", reason = "More changes in cross sell are planned from business")` on every single `@Test` method — confirmed by direct grep of master.** This means none of these tests currently execute in CI on the three key environments; "COVERED (master)" in this document means "code exists and is wired into `home-improvement-cross-sell-tests.xml`," not "passing in CI." The only cross-sell E2E tests that run unconditionally today live in the decisioning layer: `PrequalDecisionHiclCrossSellTest` and `PrequaDecisionlHiclGoldstarTest` (no `@SkipUntil`).
 
-**New this refresh — "Omni Pre-Qual" initiative (epic CRD-19822, tracked as `[X-Sell Omni Prequal][BE]` sub-tickets under HI-6091):** a second, newly-added spec (`PROD/5856264352`, created 2026-07-22) flips V1's on-demand-only pre-qualification model. Instead of running the prequal only when a borrower clicks through, CDS now generates a generic HI cross-sell prequal upfront during the existing monthly Goldstar-style bureau refresh for consenting, eligible customers. Borrowers split into **Branch A** (valid non-expired APPROVED omni prequal exists → shown a "you're pre-qualified" tile, no dollar amount) or **Branch B** (no valid prequal → on-demand ITA at lower priority, captures consent, graduates into the next month's batch). This is a workstream-based build-out: W0 (avro-decisioning-lib bump), W1 (batch consumer routing), W2 (activation rendezvous APPROVED→ACTIVE), W3 (send prequalDecisionUuid to CDS), W5 (tests/flag/observability), W7 (prequal-decision-srvc client + Branch-A/B gating), W_AMT (amount suppression), W_EXP (45-day expiry), W_SHARE (editable contact at share step). **W7 and W2 — the architectural core that actually implements the Branch A/B split and activation state machine — have not been started** (HI-7754, HI-7756 both status Open, no PRs).
+**"Omni Pre-Qual" initiative (epic CRD-19822, tracked as `[X-Sell Omni Prequal][BE]` sub-tickets under HI-6091):** a second spec (`PROD/5856264352`, created 2026-07-22) flips V1's on-demand-only pre-qualification model. Instead of running the prequal only when a borrower clicks through, CDS now generates a generic HI cross-sell prequal upfront during the existing monthly Goldstar-style bureau refresh for consenting, eligible customers. Borrowers split into **Branch A** (valid non-expired APPROVED omni prequal exists → shown a "you're pre-qualified" tile, no dollar amount) or **Branch B** (no valid prequal → on-demand ITA at lower priority, captures consent, graduates into the next month's batch). Workstreams: W0 (avro-decisioning-lib bump), W1 (batch consumer routing), W2 (activation rendezvous APPROVED→ACTIVE), W3 (send prequalDecisionUuid to CDS), W5 (tests/flag/observability), W7 (originally prequal-decision-srvc client + Branch-A/B gating), W_AMT (amount suppression), W_EXP (45-day expiry), W_SHARE (editable contact at share step).
+
+**CRITICAL — W7 was rescoped 2026-08-21, and Branch A/B gating (O1) now appears untracked by any ticket.** HI-7754's own description states: *"This ticket originally specified a prequal-decision-srvc REST client plus resolver Branch-A/B gating... It is now decline suppression only, sourced locally... prequal-decision-srvc REST client and the 'adopt a remote decision' branch. Dropped, not deferred... Comes back as its own ticket if the gap case is ever observed."* W7 (`hi-application-srvc#1105`, MERGED) now implements only a local `cross_sell_decline` table + 90-day cooldown suppression — it does **not** implement the Branch A/B routing logic that O1 requires and that the rest of this document (Coverage Matrix, Spec Gaps) still attributes to it. No replacement ticket for O1 was found this refresh. W1/W2 (batch consumer + activation rendezvous) progressed significantly via `hi-application-srvc#1102` (OPEN) and have qa-automation E2E coverage merged (`qa#37758`).
 
 ## Ticket Map
 
@@ -54,9 +56,9 @@ The Cross Sell program offers existing Upgrade customers (PL, PCL, Deposit, HI, 
 | HI-6751 | [FE][Borrower] BE API at pre-qualification | Story | Closed | bd-ui#7395 (superseded), new-repo#9 | N/A (FE) | COVERED* | -- |
 | HI-6754 | [FE][Merchant] List Upgrade Leads on homepage | Story | Closed | md-ui#747/748/751 (MERGED) | N/A (FE) | COVERED* | -- |
 | HI-6755 | [FE][Merchant] Lead Details page for Upgrade Leads | Story | Closed | md-ui#748/749 (MERGED) | N/A (FE) | COVERED* | -- |
-| HI-6756 | [FE][Merchant] Create Application page for leads | Story | Closed | -- | N/A | GAP | No PRs |
+| HI-6756 | [FE][Merchant] Create Application page for leads | Story | Closed (resolution: **Not Needed**) | -- | N/A | IN DEV (local branch, no PR) | Ticket closed as not needed — the "New Create Application" flow reuses the existing Gold Star Leads create-application pattern (product-confirmed, no dedicated FE ticket required). The flow itself is real and live in-product; `HI-CrossSellDirectoryPLTests` branch (qa-automation, not yet a PR) adds 8 new E2E tests covering it (merchant-initiated app creation, lead status→APP_CREATED transition, per-merchant lead isolation, lead-stage isolation, prequal-expiry propagation) — master still has zero coverage for this flow |
 | HI-6766 | [FE][CCP] Cross Sell config in Merchant Features | Story | Closed | abp-ui#3622/3630 (MERGED) | N/A (FE) | COVERED* | -- |
-| HI-6769 | [BE] NBA configuration for Cross Sell | Story | In Validation | hi-app#634 (MERGED), nba#3398 (MERGED), nba#3418 (OPEN) | Done | GAP | NBA delivery E2E not found |
+| HI-6769 | [BE] NBA configuration for Cross Sell | Story | In Validation | hi-app#634 (MERGED), nba#3398 (MERGED), nba#3418 (OPEN) | Done | IN DEV (local branch, no PR) | `HI-CrossSellDirectoryPLTests` branch adds 2 new borrower-UI E2E tests asserting the NBA banner renders on the Directory page for PL and PCL borrowers with no HI history — not yet a PR, so master coverage is still GAP |
 | HI-6770 | [FE][CCP] Borrower Servicing Zip Code | Story | Closed | abp-ui#3630/3632 (MERGED) | N/A (FE) | COVERED* | -- |
 | HI-6771 | [FE][CCP] Places ID for Google Reviews | Story | Closed | abp-ui#3630/3631 (MERGED) | N/A (FE) | COVERED* | -- |
 | HI-6828 | [FE][MD] Updates required by Design/Product | Task | Closed | md-ui#756 (MERGED) | N/A (FE) | N/A | -- |
@@ -79,13 +81,21 @@ The Cross Sell program offers existing Upgrade customers (PL, PCL, Deposit, HI, 
 | HI-7505 | Extra merchant placeholder images by category | Story | In Validation | home-improvement-borrower-dashboard-ui#12 (**still OPEN**) | N/A (FE) | GAP | Status/PR mismatch — WATCH |
 | HI-7506 | Hide filter categories if no merchants | Story | Closed | No dedicated PR; likely bundled in new-repo#9 FilterSection | N/A (FE) | GAP | -- |
 | HI-7704 | [BE] Minimal backend defense-in-depth | Story | Closed | hi-merchant#5904 (MERGED, UT only) | Partial | GAP | No IT, no E2E |
-| HI-7754 | [Omni Prequal][BE] W7 — prequal-decision-srvc client + Branch-A/B gating | Story | Open | -- | GAP (no PRs) | SPEC GAP | **Not started — this is the architectural core of Omni (O1)** |
-| HI-7755 | [Omni Prequal][BE] W1 — Batch consumer routing + applicant hydration | Story | In Development | -- | GAP (no PRs) | SPEC GAP | Not started at code level |
-| HI-7756 | [Omni Prequal][BE] W2 — Activation rendezvous (APPROVED→ACTIVE) | Story | Open | -- | GAP (no PRs) | SPEC GAP | Not started |
-| HI-7757 | [Omni Prequal][BE] W3 — Send prequalDecisionUuid to CDS | Story | In Validation | loan-app-creation-srvc#9287 (OPEN, UT only) | Partial | GAP | No IT, no E2E |
-| HI-7758 | [Omni Prequal][BE] W_SHARE — Editable contact at share step | Story | Ready for CodeReview | hi-application-srvc#1038 (OPEN, Done UT+IT), qa#37409 (OPEN/DRAFT, utils only, no test methods yet), qa-gql#1085 (OPEN/DRAFT) | Done (BE) | IN DEV (draft, incomplete) | E2E scaffolding started, no assertions yet |
+| HI-7754 | [Omni Prequal][BE] W7 — local cross-sell decline record + 90-day cooldown suppression (**rescoped 2026-08-21**, Branch A/B gating dropped) | Story | Ready for CodeReview | hi-application-srvc#1105 (MERGED, `cross_sell_decline` table + cooldown), hi-application-srvc#1102 (OPEN, W1/W2, shared PR) | Done | GAP (no E2E on master for decline suppression; `gh search code` finds zero references to `CrossSellDecline`/`cross_sell_decline` in qa-automation) | **O1 (Branch A/B gating) is no longer in this ticket's scope and no replacement ticket found — likely the single biggest untracked gap in the epic right now** |
+| HI-7755 | [Omni Prequal][BE] W1 — Batch consumer routing + applicant hydration | Story | Ready for CodeReview | hi-application-srvc#1102 (OPEN, "batch cross-sell prequal consumer + activation rendezvous"), hi-application-srvc#1126 (OPEN, W5 dark-launch flag), hi-application-srvc#1105 (MERGED) | Partial (BE PR open, not merged) | COVERED — `qa-automation#37758` "E2E coverage for batch cross-sell prequal consumer" (MERGED) touches `HomeImprovementCrossSellBatchPreQualTest`/`HomeImprovementCrossSellEligibilityTest` | E2E landed ahead of the BE PR merging — verify #1102 merges with the same contract the E2E already assumes |
+| HI-7756 | [Omni Prequal][BE] W2 — Activation rendezvous (APPROVED→ACTIVE) | Story | In Validation | hi-application-srvc#1102 (OPEN, shared with W1) | Partial (BE PR open) | COVERED — same `qa#37758` as W1 (both rendezvous trigger paths noted in HI-6478 checklist) | -- |
+| HI-7757 | [Omni Prequal][BE] W3 — Send prequalDecisionUuid to CDS | Story | Resolved | loan-app-creation-srvc#9287 (**MERGED**) | Partial (UT only, `HomeImprovementCreditDecisionModelFactoryTest`) | GAP | No IT, no E2E — this is the CDS handoff wiring for O17/O18 |
+| HI-7758 | [Omni Prequal][BE] W_SHARE — Editable contact at share step | Story | **Resolved** | hi-application-srvc#1038 (MERGED, Done UT+IT), qa-automation#37912 (**MERGED** — "HI-7758 \| W_SHARE — Editable contact at share step", adds `borrowerSharesContactWithUpdatedApplicantContactTest` API-level test to `HomeImprovementCrossSellBorrowerFlowTest`), qa-gql#1085 (MERGED) | Done (BE) | PARTIAL — API-level E2E now on master (asserts lead created, does NOT verify the merchant sees the updated contact anywhere); `HI-CrossSellDirectoryPLTests` branch (not yet a PR) adds a merchant-UI test (`upgradeLeadDetailShowsUpdatedApplicantContactTest`) that closes exactly this gap | See HI-8025 below — a real bug was found this refresh: the merchant Lead Details page sources contact from `Actor.profile`, but this ticket's edit writes to applicant-srvc's `Applicant` entity, a different record |
 | HI-7759 | [Omni Prequal][BE] W_EXP — 45-day cross-sell prequal expiry | Story | Closed | Jira resolution = Done (no PR captured in scanned repos) | Done (per resolution) | PARTIAL | S29: spec self-contradicts 30 vs 45 days in different sections — needs product clarification on Branch B |
-| HI-7760 | [Omni Prequal][BE] W5 — Tests/feature flag/observability | Story | Open | -- | GAP (no PRs) | SPEC GAP | Not started |
+| HI-7760 | [Omni Prequal][BE] W5 — Tests/feature flag/observability | Story | Ready for CodeReview | hi-application-srvc#1126 (OPEN, "dark-launch flag for cross-sell batch prequal consumer") | Partial (PR open, not merged) | GAP | Flag exists in-PR; no E2E asserting flag-off behavior yet |
+| HI-7918 | Clean up pre-qual dead code | Task | Open | -- | GAP (no PRs) | N/A | `HomeImprovementPreQualifiedEvent` no longer used — needs cleanup in both qa-automation and hi-application-srvc |
+| HI-7928 | [FE][Borrower] Read pre-qualification contact details from Actor instead of Applicant | Story | Ready For Eng | -- | GAP (no PRs) | SPEC GAP | Root cause: with the new batch process, `HomeImprovementPreQualificationApplicant.applicant` is null until contact-sharing starts (BE avoids creating unused Account/Applicant rows) — borrower's own pre-qual form must read contact off `Actor.profile` first and fall back to `applicant` after sharing. Directly related to the HI-8025 merchant-side gap below — same Actor-vs-Applicant sourcing problem, different screen |
+| HI-7938 | Update report to pull borrower contact info correctly based on if applicant is created or not | Story | In Development | -- | GAP (no PRs) | SPEC GAP | Reporting-side counterpart to HI-7928/HI-8025 — same underlying Actor-vs-Applicant sourcing issue |
+| HI-8024 | [FE][MD] Update Cross Sell tab disclaimer | Task | Blocked | -- | N/A (FE) | GAP | Current copy: "Leads expire 30 days after pre-qualification" — needs reconciling with the 45-day Omni expiry (S29/O8) |
+| HI-8025 | [FE][MD] Handle the different sources for the contact info in the Lead Details page | Task | Blocked | -- | N/A (FE) | GAP — but a regression test now exists locally | **This is the ticket that will fix the exact bug found this refresh**: merchant Lead Details page reads `applicant.actor.profile.primaryPhysicalAddress`/`primaryPhoneNumber` (`src/normalizers/pre-qualification.js` in `merchant-dashboard-ui`), but HI-7758's `primaryApplicantContact` edit writes to applicant-srvc's `Applicant` entity — a different record. `HI-CrossSellDirectoryPLTests` branch's `upgradeLeadDetailShowsUpdatedApplicantContactTest` (not yet a PR) will catch this once pushed |
+| HI-8026 | [FE][MD] Show the Cross Sell tab even if merchant has no projects | Task | Blocked | -- | N/A (FE) | GAP | Directly relevant to QA test setup: our E2E helpers currently work around "no projects → tab hidden" by giving pooled/fresh merchants a project first (`giveMerchantOwnProject`, `findOrCreateSimpleCompletedProjectForPrequal`) — once this ships, that workaround becomes unnecessary |
+| HI-8027 | [FE][Borrower] Pre-qualification income amount cannot be zero | Story | Open | -- | GAP (no PRs) | N/A (FE) | Form validation gap: individual income / additional household income must not be 0; additional income must be `>0` or null; also needs a $3M income cap |
+| HI-8036 | [BE] Merchant read applicant | Story | Open | spicedb-schemas#1899 (DRAFT, `read_applicant` permission + lead-share grant), applicant-srvc#2353 (DRAFT, scoped opt-in SpiceDB check on applicant read) | GAP (both PRs draft, no tests yet) | SPEC GAP | New SpiceDB permission gating which merchant employees can read an applicant's contact info — likely the authz layer underneath HI-8025's fix |
 | HI-7761 | [Omni Prequal][BE] W0 — avro-decisioning-lib bump | Story | Closed | Jira resolution = "Self-Resolved" — likely a dependency-bump PR in `avro-decisioning-lib`, not in our tracked repo set | N/A (dependency) | N/A | Not independently verified — different repo scope |
 | HI-7762 | [Omni Prequal][BE] W_AMT — Suppress prequal amount on borrower surfaces | Story | Closed | **None — Jira resolution = "Won't Do"** | N/A | SPEC GAP | **Not a gap to fix by this ticket — deliberately deprioritized.** Amount-suppression logic (O3) remains unimplemented; overlaps unresolved with HI-7765 (Blocked) |
 | HI-7765 | [FE][Borrower][placeholder] Hide pre-qual amounts on success/cards | Story | Blocked | -- | N/A (FE) | SPEC GAP | Real successor to HI-7762; still Blocked, no PRs — O3 remains a live HIGH gap |
@@ -161,13 +171,13 @@ _Analyzed: 2026-08-21_
 
 ### loan-app-creation-srvc#9287 — Send prequalDecisionUuid to CDS at application (HI-7757, W3)
 
-_Analyzed: 2026-08-21_
+_Analyzed: 2026-08-21, status updated 2026-08-31 (PR now MERGED, ticket now Resolved)_
 
 **UT/IT**: `HomeImprovementCreditDecisionModelFactoryTest` (UT only, no IT).
 
 **E2E**: None found.
 
-**Gaps**: [HIGH] This is the wiring for O17/O18 (prequal-id-driven re-decision) — currently only unit-tested; no integration or E2E coverage for the actual CDS handoff.
+**Gaps**: [HIGH] This is the wiring for O17/O18 (prequal-id-driven re-decision) — currently only unit-tested; no integration or E2E coverage for the actual CDS handoff. Ticket is Resolved but the coverage gap itself is unchanged.
 
 ### home-improvement-borrower-dashboard-ui#8, #9 — New repo foundation + full cross-sell migration (HI-7411, HI-6494-6498, HI-6642, HI-6720, HI-6743, HI-6745, HI-6750, HI-6751, HI-7077, HI-7243, HI-7504, HI-7506)
 
@@ -180,6 +190,48 @@ _Analyzed: 2026-08-21_
 **E2E**: Covered by `qa-automation#34134` (now merged to master) which was updated to target the new repo's routes/selectors; `qa#37388` is a follow-up nav fix.
 
 **Gaps**: The old `borrower-dashboard-ui#70xx/71xx/72xx` PR links throughout this Ticket Map are now historical — the live source of truth for all borrower-side cross-sell FE code is this new repo.
+
+### hi-application-srvc#1105 — W7 rescoped: local cross_sell_decline table + 90-day cooldown (HI-7754)
+
+_Analyzed: 2026-08-31_
+
+**Changes**: MERGED. Replaces the originally-planned prequal-decision-srvc REST client + Branch-A/B gating with a much smaller scope: a new `cross_sell_decline` table (unique on `actor_id`, holding the most recent decline only), written from both the batch (`PrequalDecisionComputedEventHandler`) and on-demand (`persistCreditDecision`) paths, read via `CrossSellDeclineService.isWithinCooldown`. Per the ticket's own description, the REST client and "adopt a remote decision" branch were **dropped, not deferred**.
+
+**UT/IT**: Not independently re-verified this refresh (PR merged, assume covered per ticket's design doc reference).
+
+**E2E**: **None found.** `gh search code 'CrossSellDecline repo:Credify/qa-automation'` and `'cross_sell_decline repo:Credify/qa-automation'` both return zero results.
+
+**Gaps**: [HIGH] Net-new decline-suppression + cooldown logic has zero E2E coverage. [CRITICAL] Branch A/B gating (O1) — the thing this ticket used to own — now has no ticket at all as far as this refresh could find.
+
+### hi-application-srvc#1102 — Batch cross-sell prequal consumer + activation rendezvous (HI-7755, HI-7756)
+
+_Analyzed: 2026-08-31_
+
+**Changes**: OPEN (not yet merged). Implements the W1 batch consumer routing and W2 activation rendezvous (APPROVED→ACTIVE) together in one PR.
+
+**UT/IT**: Not independently re-verified this refresh (PR still open).
+
+**E2E**: `qa-automation#37912` — no, that's W_SHARE. Batch/rendezvous E2E is `qa-automation#37758` (MERGED), touching `HomeImprovementCrossSellBatchPreQualTest` and `HomeImprovementCrossSellEligibilityTest`.
+
+**Gaps**: [MEDIUM] E2E merged ahead of the BE PR it depends on — worth re-verifying the E2E's assumptions once #1102 actually merges.
+
+### qa-automation#37912 — HI-7758 W_SHARE E2E (editable contact at share step)
+
+_Analyzed: 2026-08-31_
+
+**Changes**: MERGED. Adds `borrowerSharesContactWithUpdatedApplicantContactTest` to `HomeImprovementCrossSellBorrowerFlowTest` (API-level, `@ApiTest`) — calls `shareContactWithMerchantAndContact(...)` with an edited phone/address, then validates the DB `pre_qualification_lead` row (`merchant_id`, `status=ACTIVE`).
+
+**Gaps**: [MEDIUM] Does not verify the edited contact is actually visible anywhere downstream (merchant UI or otherwise) — the test's own comment flags this as a "future assertion." This is exactly the gap HI-8025 tracks and that `HI-CrossSellDirectoryPLTests`'s `upgradeLeadDetailShowsUpdatedApplicantContactTest` (local branch, no PR yet) closes.
+
+### hi-application-srvc#1126 — W5 dark-launch flag for batch cross-sell prequal consumer (HI-7755/HI-7760)
+
+_Analyzed: 2026-08-31_
+
+**Changes**: OPEN. Adds a feature flag gating the batch consumer.
+
+**E2E**: None found.
+
+**Gaps**: [MEDIUM] No test asserting flag-off behavior (consumer should no-op) vs flag-on.
 
 ## Coverage Matrix
 
@@ -199,11 +251,13 @@ _(V1 rows carried forward from the 2026-06-19 refresh with the master-merge + Sk
 | Merchant Braze notifications | HI-6541 | Y | Y | GAP — qa#37317 test actually asserts the borrower-side event, mislabeled | GAP |
 | NBA config + eligibility retriever | HI-6769 | Y | Y | GAP | PARTIAL |
 | Reporting & funnel metrics | HI-6543 | Partial | Partial | GAP | GAP |
-| **Omni: Branch A/B gating logic (O1)** | HI-7754 (W7, not started) | -- | -- | SPEC GAP | GAP |
+| **Omni: Branch A/B gating logic (O1)** | **No ticket** — HI-7754/W7 was rescoped 2026-08-21 to decline-suppression only; gating logic dropped, not reassigned | -- | -- | SPEC GAP | GAP — **now untracked, not just unimplemented** |
 | **Omni: Eligibility ≥3 merchants/150mi (O2/S26)** | Spec only | -- | -- | PARTIAL (V1 radius logic reused, 3-vs-5 threshold not confirmed) | PARTIAL |
 | **Omni: Amount suppression on borrower surfaces (O3)** | HI-7762 (Won't Do), HI-7765 (Blocked) | -- | -- | SPEC GAP | GAP (confirmed unimplemented, actively at risk) |
 | **Omni: Repeat-customer category exclusion + Goldstar overlap (O4/O5)** | Spec only / S28 | -- | -- | `qa#35594` "HICL cross-sell prequal exemption from goldstar eligibility" (MERGED) | COVERED (exemption logic); category-display UI not confirmed |
-| **Omni: Monthly batch decisioning + prequal fields (O6/O7)** | HI-7755 (W1, in dev) | -- | -- | `qa#37553` "Add QA coverage for HI cross-sell prequal decision" (MERGED); `qa#37576` validates `prequalType=GOLD_STAR` | PARTIAL |
+| **Omni: Monthly batch decisioning + prequal fields (O6/O7)** | HI-7755 (W1, Ready for CodeReview), HI-7756 (W2, In Validation) | -- | -- | COVERED — `qa#37553`, `qa#37758` (both MERGED); `qa#37576` validates `prequalType=GOLD_STAR` | PARTIAL→largely COVERED, pending BE PR #1102 merge |
+| **Omni: Decline suppression / 90-day cooldown (new, part of rescoped W7)** | HI-7754 (Ready for CodeReview, `hi-application-srvc#1105` MERGED) | -- | -- | GAP — zero references to `CrossSellDecline`/`cross_sell_decline` found in qa-automation | GAP (net-new BE logic, merged, untested at E2E) |
+| **Merchant Lead Details shows borrower's edited contact (Actor vs Applicant source mismatch)** | HI-7758 (Resolved), HI-8025 (Blocked, the actual fix), HI-7928/HI-7938 (related, other screens) | Y (BE, HI-7758) | -- | PARTIAL — `qa#37912` (MERGED) verifies the DB lead row only; `HI-CrossSellDirectoryPLTests` (local branch, no PR) adds a merchant-UI test that asserts the merchant actually sees the edited address/phone | GAP until HI-8025 ships and the local-branch test lands as a PR |
 | **Omni: 45-day expiry / 30-day contradiction (O8/S29)** | HI-7759 (Done) | -- | -- | Unverified whether E2E asserts both branch expiries | PARTIAL |
 | **Omni: Sub-cohort treatment (4 states) (O9)** | Spec only, no ticket | -- | -- | SPEC GAP | GAP |
 | **Omni: Null-score-vs-decline fairness (O10)** | Spec open question, no ticket | -- | -- | SPEC GAP | GAP |
@@ -232,7 +286,7 @@ _(V1 rows carried forward from the 2026-06-19 refresh with the master-merge + Sk
 
 | # | Requirement | Source | Priority | E2E Status |
 | --- | --- | --- | --- | --- |
-| O1 | Branch A/B gating: route to Branch A if a valid, non-expired, APPROVED Omni prequal + CPA consent exists; else Branch B (on-demand, lower priority) | Product Flow #2, Decisioning sub-cohort table | **HIGH** | SPEC GAP — owning ticket HI-7754 (W7) not started |
+| O1 | Branch A/B gating: route to Branch A if a valid, non-expired, APPROVED Omni prequal + CPA consent exists; else Branch B (on-demand, lower priority) | Product Flow #2, Decisioning sub-cohort table | **HIGH** | SPEC GAP — **HI-7754 (W7) was rescoped 2026-08-21 and explicitly dropped this scope ("Dropped, not deferred"); no replacement ticket found. This is now an unowned requirement, not just an unstarted one** |
 | O2 | Eligibility: ≥3 partnered merchants within 150-mile radius (same as S26) | Product Flow #1 | MEDIUM | PARTIAL |
 | O3 | Amount suppression: borrower never sees the pre-qualified dollar amount on **any** surface (tile, funnel, email, SMS); merchant sees it in the lead | Decisioning notes, flow-chart sticky note | **HIGH** | SPEC GAP — HI-7762 Won't Do, successor HI-7765 Blocked. Spec itself flags this as an engineering risk ("tile and lead resolve through the same amount-bearing type today") |
 | O4 | Category exclusion: repeat HI borrower sees every contractor category except their previous project category | Product Flow #3, "Repeat customer exclusion" note | MEDIUM | SPEC GAP |
@@ -248,8 +302,8 @@ _(V1 rows carried forward from the 2026-06-19 refresh with the master-merge + Sk
 | O14 | Score gate: cutoffs on HIRM1/IR5/EDQHIRM1 per MQG+FICO; gate = "score present AND under cutoff" — a score above cutoff OR null both decline (root cause of O10) | Score rules | **HIGH** | SPEC GAP |
 | O15 | Proxy rules if scores unavailable | Score rules | LOW | N/A — spec itself incomplete ("add here" placeholders), not yet testable |
 | O16 | Application matching: borrower-initiated via actor+prequal id; merchant-initiated via first/last name+DOB (spec marks "to confirm") | Application and re-decision | MEDIUM | SPEC GAP — spec itself not finalized |
-| O17 | Prequal-id selection: HI sends CDS the specific locked `prequal_id`; if borrower holds both Goldstar and Cross-Sell prequals, HI picks based on which merchant `account_id` was selected | Application and re-decision | **HIGH** | PARTIAL — HI-7758 (W_SHARE) has BE Done, E2E draft/incomplete |
-| O18 | Re-decision: CDS re-decisions against the locked prequal_id + locked policy version, using merchant configs current **at application time**, credit report reused if pulled within 30 days else fresh pull | Application and re-decision | **HIGH** | SPEC GAP — HI-7754 (W7) not started |
+| O17 | Prequal-id selection: HI sends CDS the specific locked `prequal_id`; if borrower holds both Goldstar and Cross-Sell prequals, HI picks based on which merchant `account_id` was selected | Application and re-decision | **HIGH** | PARTIAL — HI-7758 (W_SHARE) Resolved, BE Done, E2E now on master (`qa#37912`) at the DB level only; merchant-UI verification exists on local branch only (no PR yet) |
+| O18 | Re-decision: CDS re-decisions against the locked prequal_id + locked policy version, using merchant configs current **at application time**, credit report reused if pulled within 30 days else fresh pull | Application and re-decision | **HIGH** | SPEC GAP — **owning ticket HI-7754 (W7) rescoped 2026-08-21 to decline-suppression only; this requirement was dropped along with O1 and has no owning ticket** |
 | O19 | "Acquisition channel = Repeat Customer" tag on new app project page when started by same merchant [P2] | Application and re-decision | LOW | SPEC GAP |
 | O20 | Latest-decision-wins: 3 explicit scenarios — (a) approved→approved-higher (newest wins for marketing display), (b) approved→declined (prior offer goes stale/hidden), (c) approved→no-refresh-next-month (original offer stays valid until its own expiry since no overriding decision exists) | Expired pre-qualified lead | **HIGH** | SPEC GAP — none of the 3 branches found tested |
 | O21 | Merchant-initiated app on expired Omni lead: allowed to proceed with warning + fresh credit pull; "honor prequal for 45 days and not override expiry" explicitly marked "(to be confirmed)" in spec | Expired pre-qualified lead | MEDIUM | SPEC GAP — spec itself open |
@@ -268,7 +322,7 @@ _(V1 rows carried forward from the 2026-06-19 refresh with the master-merge + Sk
 | O34 | No monthly credit-score-change notice required unless account opened (explicit negative confirmation) | Questions section | N/A | Informational — not a gap |
 | O35 | Prequal policy version reuses current full policy version, no separate bank-approval versioning coupling | Questions section | N/A | Informational — not a gap |
 
-**Workstream ↔ requirement mapping:** W0/HI-7761→O11-O12 (policy plumbing/dependency bump); W1/HI-7755→O6 (batch consumer routing); W2/HI-7756→O1 (activation rendezvous, APPROVED→ACTIVE state machine); W3/HI-7757→O17-O18 (prequalDecisionUuid to CDS); W5/HI-7760→O9-O10, O14 (tests/flag/observability — the workstream most directly responsible for closing the HIGH-priority fairness/gating gaps); W7/HI-7754→O1, O18 (Branch-A/B gating + re-decision — the architectural core, not started); W_AMT/HI-7762→O3 (Won't Do); W_EXP/HI-7759→O8 (Done); W_SHARE/HI-7758→O17 (in code review, E2E incomplete).
+**Workstream ↔ requirement mapping (updated 2026-08-31):** W0/HI-7761→O11-O12 (policy plumbing/dependency bump); W1/HI-7755→O6 (batch consumer routing, Ready for CodeReview, E2E merged); W2/HI-7756→ activation rendezvous state machine (In Validation, E2E merged) — **no longer O1**, since W7 dropped Branch A/B gating without W2 picking it up; W3/HI-7757→O17-O18 partial (prequalDecisionUuid to CDS, Resolved/merged, no IT/E2E); W5/HI-7760→ dark-launch flag only so far (Ready for CodeReview), O9-O10/O14 fairness logic not yet visible in this PR; **W7/HI-7754→ now ONLY the local decline-suppression table + cooldown (Ready for CodeReview, merged) — O1 (Branch A/B gating) and O18 (re-decision against locked policy) are unowned by any ticket as of this refresh**; W_AMT/HI-7762→O3 (Won't Do); W_EXP/HI-7759→O8 (Done); W_SHARE/HI-7758→O17 (Resolved, DB-level E2E merged, merchant-UI-visibility gap tracked by HI-8025).
 
 ## Active Gaps
 
@@ -279,17 +333,21 @@ _(V1 rows carried forward from the 2026-06-19 refresh with the master-merge + Sk
 
 ### Critical / HIGH (E2E or implementation needed)
 
-1. **[HIGH]** O1 — Branch A/B gating not started (HI-7754/W7 Open, no PRs) — the entire Omni architecture hinges on this
-2. **[HIGH]** O3 — Amount suppression on borrower surfaces unimplemented (HI-7762 Won't Do, HI-7765 Blocked) — spec itself flags this as an unresolved engineering risk
-3. **[HIGH]** O9 — 4-way sub-cohort treatment (consent × batch-decision combinations) has no ticket or test coverage
-4. **[HIGH]** O10 — Null-score-vs-true-decline suppression fairness is an open compliance question with no ticket
-5. **[HIGH]** O14 — Score-gate cutoff logic (HIRM1/IR5/EDQHIRM1) untested at E2E
-6. **[HIGH]** O17/O18 — Prequal-id selection (Goldstar vs Cross-Sell) + re-decision against locked policy/current-merchant-config — BE in progress (HI-7757/HI-7758), no E2E assertions yet
-7. **[HIGH]** O20 — Latest-decision-wins re-solicitation logic (3 branches: approve→higher, approve→decline, approve→no-refresh) entirely untested
-8. **[HIGH]** O23 — Restricted decline-reason enumeration at re-decision (anti bait-and-switch) has zero test coverage
-9. **[HIGH]** S29 — 30-day vs 45-day offer-validity contradiction needs product clarification before it can be tested correctly
-10. **[CARRIED OVER, HIGH]** S1 — Borrower eligibility: only PL covered at E2E; PCL/Deposit/HI/FlexPay untested
-11. **[OPERATIONAL, HIGH]** The entire V1 E2E suite (9 classes, 22 tests) is `@SkipUntil`-disabled on main/stage/preprod until 2050 — none of the "COVERED" V1 items above are currently a meaningful CI signal. Needs a decision: re-enable as-is, or hold frozen pending W7 (since V1's on-demand-only assumptions may not survive Branch-A).
+1. **[CRITICAL, NEW]** O1 — Branch A/B gating is now **unowned by any ticket**: HI-7754/W7 was rescoped 2026-08-21 to decline-suppression-only and explicitly dropped this scope ("Dropped, not deferred"). Previously this was merely "not started"; now there is no ticket to watch for it at all. Needs a product/eng decision on who picks this up.
+2. **[HIGH, NEW]** O18 — Re-decision against locked policy/current-merchant-config was dropped from HI-7754 alongside O1 — same unowned status.
+3. **[HIGH, NEW]** Decline suppression / 90-day cooldown (new BE scope in the rescoped W7, `hi-application-srvc#1105` MERGED) has **zero E2E coverage** — confirmed via code search, not just unverified.
+4. **[HIGH, NEW]** Merchant Lead Details page shows the borrower's **original** `Actor.profile` contact info even after HI-7758's edited contact is persisted, because that edit writes to a different record (applicant-srvc's `Applicant`) than what the FE reads (`Actor.profile.primaryPhysicalAddress`/`primaryPhoneNumber`). Confirmed by direct FE source inspection this refresh; tracked by HI-8025 (Blocked) and related HI-7928/HI-7938. A merchant-UI regression test exists on the `HI-CrossSellDirectoryPLTests` branch (not yet a PR) that will catch this once merged.
+5. **[HIGH]** O3 — Amount suppression on borrower surfaces unimplemented (HI-7762 Won't Do, HI-7765 Blocked) — spec itself flags this as an unresolved engineering risk
+6. **[HIGH]** O9 — 4-way sub-cohort treatment (consent × batch-decision combinations) has no ticket or test coverage
+7. **[HIGH]** O10 — Null-score-vs-true-decline suppression fairness is an open compliance question with no ticket
+8. **[HIGH]** O14 — Score-gate cutoff logic (HIRM1/IR5/EDQHIRM1) untested at E2E
+9. **[HIGH]** O17 — Prequal-id selection (Goldstar vs Cross-Sell) — BE Resolved, DB-level E2E now on master (`qa#37912`), but no assertion that the merchant actually *sees* the right info (see item 4 above)
+10. **[HIGH]** O20 — Latest-decision-wins re-solicitation logic (3 branches: approve→higher, approve→decline, approve→no-refresh) entirely untested
+11. **[HIGH]** O23 — Restricted decline-reason enumeration at re-decision (anti bait-and-switch) has zero test coverage
+12. **[HIGH]** S29 — 30-day vs 45-day offer-validity contradiction needs product clarification before it can be tested correctly — also now surfaced verbatim in the FE ticket HI-8024 (tab disclaimer still says 30 days)
+13. **[CARRIED OVER, HIGH]** S1 — Borrower eligibility: only PL covered at E2E; PCL/Deposit/HI/FlexPay untested
+14. **[OPERATIONAL, HIGH]** The entire V1 E2E suite (9 classes, 22 tests) is `@SkipUntil`-disabled on main/stage/preprod until 2050 — none of the "COVERED" V1 items above are currently a meaningful CI signal. Needs a decision: re-enable as-is, or hold frozen pending Branch-A/B gating landing somewhere.
+15. **[OPERATIONAL, HIGH, NEW]** `HI-CrossSellDirectoryPLTests` (qa-automation) has grown to 12 new/updated E2E tests covering HI-6756 (create-application flow, 8 tests), HI-6769 (NBA banner, 2 tests), and HI-7758 (merchant-UI contact verification, 1 test) plus a lead-status double-check — but is **not yet a PR**. Until it's pushed, none of this coverage exists anywhere but a local branch, and this document's "IN DEV (local branch, no PR)" notes above are not independently verifiable by anyone else.
 
 ### Medium Priority
 
@@ -327,6 +385,19 @@ _(V1 rows carried forward from the 2026-06-19 refresh with the master-merge + Sk
 2. **[WATCH]** HI-7759 — Jira "Done" but no PR captured in our tracked repos; verify against `avro-decisioning-lib` or wherever the actual change landed
 3. **[WATCH]** HI-7761 — resolution "Self-Resolved"; likely a dependency bump in `avro-decisioning-lib`, outside our tracked repo set — not independently verified
 
+### Changes Since Last Refresh (2026-08-21 → 2026-08-31)
+
+* **9 new child tickets** since last refresh: HI-7918, HI-7927, HI-7928, HI-7938, HI-8024, HI-8025, HI-8026, HI-8027, HI-8036.
+* **W7/HI-7754 rescoped** (2026-08-21, same day as last refresh but not yet reflected in it): dropped the prequal-decision-srvc REST client and Branch-A/B gating entirely — "Dropped, not deferred." Now implements only a local `cross_sell_decline` table + 90-day cooldown suppression (`hi-application-srvc#1105`, MERGED). **O1 (Branch A/B gating) and O18 (re-decision) are now unowned by any ticket** — this is the single most consequential finding of this refresh.
+* **Omni workstreams progressed significantly**: W1 (HI-7755) and W3 (HI-7757) both flipped to Resolved/Ready-for-CodeReview with merged PRs; W2 (HI-7756) advanced to In Validation; W5 (HI-7760) reached Ready for CodeReview with a dark-launch flag PR (`hi-application-srvc#1126`, OPEN); W_SHARE (HI-7758) fully Resolved.
+* **New E2E landed on qa-automation master**: `qa#37758` (MERGED) — batch cross-sell prequal consumer E2E, touching `HomeImprovementCrossSellBatchPreQualTest`/`HomeImprovementCrossSellEligibilityTest`. `qa#37912` (MERGED) — supersedes the previously-tracked draft `qa#37409`; adds an API-level test for HI-7758's editable-contact-at-share-step feature, but only asserts the DB lead row, not merchant-side visibility.
+* **New bug found this refresh, with a regression test already written**: the merchant Lead Details page (`merchant-dashboard-ui`, `src/normalizers/pre-qualification.js`) sources the borrower's displayed address/phone/email from `Actor.profile`, not from the `Applicant` record that HI-7758's contact-edit mutation actually writes to. Confirmed by direct FE source inspection. Product/eng is already aware and tracking the fix as HI-8025 (Blocked), with HI-7928/HI-7938 covering the same Actor-vs-Applicant sourcing issue on the borrower form and reporting screens respectively.
+* **Local, unpushed qa-automation work** (branch `HI-CrossSellDirectoryPLTests`, no PR yet) adds 12 new/updated `@Test` methods: 8 covering HI-6756's merchant-initiated create-application flow and lead-status lifecycle (previously a total GAP — ticket itself closed as "Not Needed" since the flow reuses the Gold Star pattern, but had zero qa-automation coverage), 2 covering HI-6769's NBA banner on the Directory page for PL/PCL borrowers, 1 new merchant-UI test closing the HI-7758/HI-8025 visibility gap above, and a hardening pass on `setUpBorrowerWithActiveCrossSellLeadsAtTwoMerchants` (now reuses pooled merchants instead of onboarding brand-new ones, for speed). **None of this is independently verifiable until it becomes a PR.**
+* **HI-6756 ticket resolution clarified**: "Not Needed," not "shipped with tests." The underlying create-application flow is real and live in-product (reuses the Gold Star Leads pattern), it just never got its own dedicated FE ticket or, until this local branch, any qa-automation coverage.
+* **New tickets confirm the Actor-vs-Applicant architecture concern is being tracked deliberately**, not just an oversight this refresh happened to notice: HI-7928 (Ready For Eng, borrower pre-qual form), HI-7938 (In Development, reporting), HI-8025 (Blocked, merchant Lead Details).
+* **New SpiceDB authz work**: HI-8036 (Open, 2 DRAFT PRs) adds a `read_applicant` permission — likely the authz layer that will gate whichever fix HI-8025 ships.
+* **3 new "Show tab even with no projects" / disclaimer FE tickets** (HI-8024, HI-8026), both Blocked — HI-8026 directly affects QA test design: our E2E setup currently works around "no projects → Cross Sell tab hidden" with `giveMerchantOwnProject`/pooled-merchant reuse; once this ships, that workaround becomes unnecessary (but should not be removed prematurely).
+
 ### Changes Since Last Refresh (2026-06-19 → 2026-08-21)
 
 * **Epic grew from 54 to 75 child tickets** — 20 net-new tickets, almost entirely the new "X-Sell Omni Prequal" workstream (HI-7754/7755/7756/7757/7758/7759/7760/7761/7762, HI-7909) plus supporting FE placeholders (HI-7765/7766/7767/7802) and misc BE/FE cleanup (HI-7411, 7441, 7504, 7505, 7506, 7704).
@@ -353,3 +424,5 @@ _(2026-04-16 through 2026-06-19 decisions carried forward verbatim — see Confl
 * 2026-08-05: Primary spec edited (v26) — eligibility merchant-count threshold lowered 5→3, HI+Goldstar exclusion removed, C&D exclusion scoped to NBA only, and a 45-day expiry introduced in the Decisioning section that was not mirrored into the (still-30-day) Product Flow section.
 * 2026-08-21: **Confirmed via direct Jira lookup**: HI-7294 (Handle AAN) and HI-7762 (W_AMT amount suppression) both closed with resolution "Won't Do" — the declined/AAN path and amount-suppression logic are deliberately out of scope, not overlooked. HI-7765 (Blocked) is the live successor tracking amount-suppression FE work.
 * 2026-08-21: Refresh discovered this CONTEXT.md had never been committed to the `feature-knowledge-base` git repo despite 10 versions of Confluence sync history — reconstructed from the Confluence page body and re-established as the git source of truth.
+* 2026-08-21 (surfaced this refresh, 2026-08-31): W7/HI-7754 rescoped away from prequal-decision-srvc REST client + Branch-A/B gating to local decline-suppression only. Per the ticket's own design-record reference, this is a deliberate, permanent scope cut ("Dropped, not deferred"), not a deferral — Branch A/B gating (O1) has no owning ticket as a result.
+* 2026-08-31: Confirmed via direct FE source inspection that the merchant Lead Details page's contact-info fields source from `Actor.profile`, while HI-7758's editable-contact-at-share-step feature writes to a separate `Applicant` record — the two are already known to product/eng (HI-8025, HI-7928, HI-7938) as a broader Actor-vs-Applicant sourcing migration in progress, not a newly-discovered defect.
