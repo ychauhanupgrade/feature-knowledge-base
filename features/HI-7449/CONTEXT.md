@@ -6,7 +6,7 @@ tech_design_url: https://credify.atlassian.net/wiki/spaces/HI/pages/5777719448
 status: in-development
 last_refreshed: 2026-09-17
 test_checklist_ticket: HI-7920
-confluence_page_id: ""
+confluence_page_id: "6055952391"
 ---
 
 # HI-7449 — HI Fraud Triggers at Payment Request
