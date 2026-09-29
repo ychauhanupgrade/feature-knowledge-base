@@ -3,7 +3,7 @@ epic: HI-6336
 title: Merchant Base Grade
 spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/4923457872/Home+Improvement+Base+Grade
 status: in-development
-last_refreshed: 2026-08-20
+last_refreshed: 2026-09-29
 test_checklist_ticket: HI-7886
 confluence_page_id: "5952569412"
 ---
@@ -16,54 +16,56 @@ HI Credit wants a fine-grained risk categorization ("base grade") with merchant-
 
 The epic spans 6 services (MPDS, HMS, LACS, HIDS, activity-events, CDS) plus 2 UI repos (`home-improvement-servicing-ui`, `ccp-portal-components`). Per HI-7859 (the epic's own retroactive tech-design ticket), the epic was originally handed over as "backend done, frontend remaining" — that framing was wrong: MPDS and LACS had **no epic ticket at all** until HI-7855/HI-7856 were opened to cover real defects found in review (silent domain-boundary bugs, a write returning HTTP 200 on a dropped update, duplicate-race errors, ID serialization). The true remaining shape of the work is backend hardening + a from-scratch VQ UI + QA automation, not "frontend only."
 
-**Zero E2E automation exists for anything under this epic in `qa-automation`** — no PR, no branch, no page objects for the VQ base-grade screens. The one related E2E coverage that does exist (`CreditDecisionHiclLockingTest`, `CreditDecisionMerchantPlanDefinitionMockHelper`) is owned by the **Decisioning team** under separate `CRD-17733`/`CRD-18201` tickets — it validates CDS's WireMock-mocked consumption/locking of a base grade preset, not the live cross-service flow, and is not tied to any HI-6336 ticket.
+**Backend E2E now exists; UI E2E still does not.** `qa-automation#38176` (HI-6775) merged 2026-09-29 and added `HomeImprovementMerchantBaseGradeTest` (5 API tests, AllureIds 84685–84688 and 84960). Three of the five carry `@SkipUntil` gates (see Active Gaps — two cite blockers that have since cleared). There are still no page objects or Playwright tests for the VQ base-grade screens. The separate Decisioning-owned coverage (`CreditDecisionHiclLockingTest`, `CreditDecisionMerchantPlanDefinitionMockHelper`, under `CRD-17733`/`CRD-18201`) validates CDS's WireMock-mocked consumption/locking of a preset and is not tied to any HI-6336 ticket.
 
 ## Ticket Map
 
 | Ticket | Summary | Status | UT | IT | E2E | PRs |
 |---|---|---|---|---|---|---|
 | HI-6636 | [BE] Tech Design | Closed | N/A | N/A | N/A | — (design only) |
-| HI-6646 | [BE] MPDS implementation (preset CRUD, score groups/bands) | Closed | Done | Done | GAP | merchant-plan-definition-srvc#2321, hi-common-lib#516, home-improvement-merchant-srvc#5188 |
-| HI-6656 | [BE] HMS merchant assignment | Closed | Done | Done | GAP | home-improvement-merchant-srvc#5188, activity-events#1410, spicedb-schemas#1355 |
-| HI-6657 | [BE] HIDS ARIX field16 | Ready for CodeReview | Done | Done | PARTIAL | home-improvement-disbursement-srvc#3715 (open) |
-| HI-6658 | [BE] LACS merchant project field | Closed | Done | Partial | GAP | loan-app-creation-srvc#8680, loan-app-creation-client#2634 |
+| HI-6646 | [BE] MPDS implementation (preset CRUD, score groups/bands) | Closed | Done | Done | COVERED | merchant-plan-definition-srvc#2321, hi-common-lib#516, home-improvement-merchant-srvc#5188/#5122 — E2E 84685 (qa-automation#38176) |
+| HI-6656 | [BE] HMS merchant assignment | Closed | Done | Done | COVERED | home-improvement-merchant-srvc#5188, activity-events#1410, spicedb-schemas#1355 — E2E 84685 |
+| HI-6657 | [BE] HIDS ARIX field16 | In Validation | Done | Done | PARTIAL | home-improvement-disbursement-srvc#3715 (still open) — E2E 84688 exists but is skipped on every env |
+| HI-6658 | [BE] LACS merchant project field | Closed | Done | Partial | PARTIAL | loan-app-creation-srvc#8680, loan-app-creation-client#2634 — E2E 84686 (skipped on stage/preprod/main) |
 | HI-6768 | [BE] activity-events new activity types | Closed | N/A | GAP | GAP | activity-events#1410 |
 | HI-6774 | Test coverage checklist (Phase 1) | Closed | N/A | N/A | N/A | — (checklist doc) |
-| HI-6775 | QA automation E2E tests | In Design | N/A | N/A | GAP | none — no qa-automation PR exists |
-| HI-6776 | Base Grade Config — Navigation & Entry Point | Open | N/A | N/A | GAP | home-improvement-servicing-ui#87 (route exists, nav entry itself pending HI-7723) |
+| HI-6775 | QA automation E2E tests | Ready for CodeReview | N/A | N/A | COVERED (API) / GAP (UI) | qa-automation#38176 (MERGED 2026-09-29, merge `e0d8617ceb`), qa-automation-graphql#1165 (merged), qa-jenkins-jobs#3434 (open — registers the `home-improvement-merchant-base-grade-tests` suite) |
+| HI-6776 | Base Grade Config — Navigation & Entry Point | Ready for CodeReview | N/A | N/A | GAP | home-improvement-servicing-ui#154 (draft), ccp-portal-components-ui#304 (open), #87 (merged) |
 | HI-6777 | Manage Base Grade Configurations — List View | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#100 |
-| HI-6778 | Create New Base Grade Configuration | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#87 |
+| HI-6778 | Create New Base Grade Configuration | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#87 (app-by-phone-ui#3688/#3693/#3905 declined) |
 | HI-6779 | View Base Grade Configuration — Read-Only Detail | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#123 |
 | HI-6780 | Duplicate Base Grade Configuration | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#127 |
-| HI-6781 | Assign to Merchants — Search & Selection | In Development | N/A | N/A | GAP | no dedicated PR found (Jira Dev panel only surfaced the unrelated list-view PR) |
-| HI-6782 | Assign — Overwrite Handling & Assigned Merchants View | Open | N/A | N/A | GAP | none yet |
+| HI-6781 | Assign to Merchants — Search & Selection | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#138 (merged) |
+| HI-6782 | Assign — Overwrite Handling & Assigned Merchants View | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#144 (open) |
 | HI-6798 | Seed first base grade preset via liquibase | Closed | N/A | Partial | GAP | merchant-plan-definition-srvc#2391 |
-| HI-7590 | [BE] Block Tier 2 preset assignment without Tier 2 enabled | Ready for CodeReview | Done | Partial | GAP | home-improvement-merchant-srvc#5791 (open), merchant-plan-definition-srvc#2727 (containedTiers, merged) |
-| HI-7723 | [ccp-portal-components] Add nav entry | Open | N/A | N/A | GAP | none identified |
+| HI-7590 | [BE] Block Tier 2 preset assignment without Tier 2 enabled | In Validation | Done | Partial | COVERED | home-improvement-merchant-srvc#5791 (merged), merchant-plan-definition-srvc#2727 (merged) — E2E 84687 |
+| HI-7723 | [ccp-portal-components] Add nav entry | In Validation | N/A | N/A | GAP | ccp-portal-components-ui#304 (open) |
 | HI-7774 | Archive a configuration | Blocked | N/A | N/A | N/A | none — no archive mutation exists in either backend, product decision pending |
 | HI-7854 | [BE] MPDS require explicit grade 1–20 coverage + DB constraint | Closed | Done | Done | GAP | folded into merchant-plan-definition-srvc#2833 |
-| HI-7855 | [BE] MPDS backend gaps (6 items: domain constraint, duplicate-race, ID serialization, schedule seed, tier-cap query, enum-drift) | Ready for CodeReview | Partial | Partial | GAP | merchant-plan-definition-srvc#2833 (open) |
-| HI-7856 | [BE] LACS write-once + stop 200-on-dropped-write | Ready for CodeReview | Done | Done | GAP | loan-app-creation-srvc#9337 (open) |
-| HI-7857 | [BE] HMS follow-ups (producer wiring, 2nd tier condition, rejection detail, franchise clone) | In Development | Partial | Partial | GAP | home-improvement-merchant-srvc#5951 (open) |
-| HI-7859 | [Design] Tech design set (HLD, design, impl notes, test plan, spike) | Ready for CodeReview | N/A | N/A | N/A | docs.credify.tech#196 (open, docs only) |
+| HI-7855 | [BE] MPDS backend gaps (6 items: domain constraint, duplicate-race, ID serialization, schedule seed, tier-cap query, enum-drift) | In Validation | Partial | Partial | GAP | merchant-plan-definition-srvc#2833 (merged) |
+| HI-7856 | [BE] LACS write-once + stop 200-on-dropped-write | In Validation | Done | Done | GAP | loan-app-creation-srvc#9337 (merged; deployed to prod via k8s-template#286559) |
+| HI-7857 | [BE] HMS follow-ups (producer wiring, 2nd tier condition, rejection detail, franchise clone) | In Validation | Partial | Partial | COVERED (gated) | home-improvement-merchant-srvc#5951 (merged) — E2E 84960 (skipped on stage/preprod/main) |
+| HI-7859 | [Design] Tech design set (HLD, design, impl notes, test plan, spike) | Ready for CodeReview | N/A | N/A | N/A | docs.credify.tech#196 (**DECLINED** — design set has no open PR now) |
 | HI-7886 | Test coverage checklist (Phase 2) | Open | N/A | N/A | N/A | — (checklist doc, populated 2026-08-20) |
+| HI-8087 | Merchant Servicing — Base Grade Configuration row & edit (NEW) | In Validation | N/A | N/A | GAP | home-improvement-servicing-ui#155 (open) |
+| HI-8096 | [Bug] CDS `ranges()` omitted `baseGradePresetId` — 500 on HICL decisions (NEW) | In Validation | Done | GAP | GAP | credit-decision-srvc#10227 (merged; re-land of CRD-20596, revert of revert #10052) |
 
-**PR classification summary:** 12 service PRs checked (merchant-plan-definition-srvc ×4, home-improvement-merchant-srvc ×4, home-improvement-disbursement-srvc ×1, loan-app-creation-srvc ×2, plus 1 excluded false-positive), 4 UI PRs (N/A — home-improvement-servicing-ui), 3 declined/abandoned UI PRs (app-by-phone-ui — superseded by the servicing-ui port), 3 client/lib PRs (N/A — loan-app-creation-client, hi-common-lib, activity-events), 1 infra/schema PR (N/A — spicedb-schemas, self-tested via `assertions.yaml`), 1 docs PR (N/A — docs.credify.tech), 0 qa-automation PRs. `hi-application-srvc#527` was surfaced by the Dev panel for HI-6656/HI-6658 but its title/diff ("[HI-5515] Add application domain data model") is unrelated to base grade — excluded as a false positive.
+**PR classification summary (2026-09-29 refresh, 38 unique PRs):** 13 service PRs (merchant-plan-definition-srvc ×4, home-improvement-merchant-srvc ×4, home-improvement-disbursement-srvc ×1, loan-app-creation-srvc ×2, credit-decision-srvc ×1 **new**, plus 1 excluded false-positive), 12 UI PRs (N/A — home-improvement-servicing-ui ×8, ccp-portal-components-ui ×1, app-by-phone-ui ×3 declined/superseded by the servicing-ui port), 3 client/lib PRs (N/A — loan-app-creation-client, hi-common-lib, activity-events), 6 infra/schema PRs (N/A — spicedb-schemas, github-terraform, k8s-template ×4), 1 docs PR (N/A — docs.credify.tech#196, now DECLINED), 3 QA repo PRs (qa-automation#38176 merged, qa-automation-graphql#1165 merged, qa-jenkins-jobs#3434 open). 13+12+3+6+1+3 = 38. `hi-application-srvc#527` was surfaced by the Dev panel for HI-6656/HI-6658 but its title/diff ("[HI-5515] Add application domain data model") is unrelated to base grade — excluded as a false positive.
 
 ## Coverage Matrix
 
 | Requirement Area | UT | IT | E2E | Notes |
 |---|---|---|---|---|
-| MPDS: preset CRUD, score groups/bands, name/content duplicate detection | Done | Done | GAP | HI-6646; `BaseGradePresetCreateIT`, `BaseGradeQueryIT`, `BaseGradeValidatorTest`, `BaseGradePresetServiceTest` |
+| MPDS: preset CRUD, score groups/bands, name/content duplicate detection | Done | Done | COVERED | HI-6646; E2E 84685 (create via MPDS, read back); `BaseGradePresetCreateIT`, `BaseGradeQueryIT`, `BaseGradeValidatorTest`, `BaseGradePresetServiceTest` |
 | MPDS: seed initial preset via Liquibase | N/A | Partial | GAP | HI-6798; IT covers validation/create/query, no dedicated test for `BackfillBaseGradePresetHashContentJob` itself |
 | MPDS: grade 1–20 domain bound + DB CHECK constraint | Done | Done | GAP | HI-7854 (closed), folded into PR#2833; `BaseGradePresetRangeConstraintIT` new in that PR |
 | MPDS: duplicate-race error mapping, URN serialization, GraphQL enum-drift guard, tier-cap query, real schedule seed | Partial | Partial | GAP | HI-7855 (open PR#2833); `GraphQLEnumConsistencyTest` new; DB-constraint IT present; **duplicate-race concurrency test and URN-serialization assertion not confirmed by filename alone — verify PR#2833's IT bodies directly** |
 | MPDS: `containedTiers` field | Done | Done | GAP | HI-7590 (MPDS half, merged PR#2727) |
-| HMS: assign/batch-assign/remove mutations, federation fields | Done | Done | GAP | HI-6656; `BaseGradePresetMutationIT`, `MerchantConfigurationServiceTest` |
+| HMS: assign/batch-assign/remove mutations, federation fields | Done | Done | COVERED | HI-6656; E2E 84685 covers the list-form assign mutation + MerchantConfiguration read-back (remove is not exercised); `BaseGradePresetMutationIT`, `MerchantConfigurationServiceTest` |
 | HMS: activity events on assign/remove | Done | GAP | GAP | HI-6768/HI-6656; `ActivityCommandPublisherTest` (UT only) — still no IT verifying the Kafka event actually publishes, same gap HI-6774 already flagged as T6 |
-| HMS: Tier 2 assignment guard (reject/allow, batch fail-fast) | Done | Partial | GAP | HI-7590 (HMS half, open PR#5791); `BaseGradePresetMutationIT` covers the core guard, but per HI-7857's own AC4 note, this IT `@MockitoBean`s `MerchantPlanDefinitionService` so the nonexistent-preset / MPDS-unreachable paths are not really exercised |
+| HMS: Tier 2 assignment guard (reject/allow, batch fail-fast) | Done | Partial | COVERED | HI-7590 (HMS half, PR#5791 now merged); E2E 84687 covers the reject path, the structured `ineligibleMerchants` extension, `containedTiers` on the created preset, and that no assignment persists after rejection (the allow path and a multi-merchant batch are not asserted); `BaseGradePresetMutationIT` covers the core guard, but per HI-7857's own AC4 note, this IT `@MockitoBean`s `MerchantPlanDefinitionService` so the nonexistent-preset / MPDS-unreachable paths are not really exercised |
 | HMS: producer wiring (MerchantProjectFactory sets baseGradePresetId) | Done | Partial | GAP | HI-7857 (open PR#5951); `MerchantProjectFactoryTest` present; per-merchant rejection detail (`ineligibleMerchants`) and franchise-clone re-validation not confirmed present |
-| LACS: baseGradePresetId snapshot at application creation | Done | Partial | GAP | HI-6658; `MerchantAtoMapperTest`/`MerchantProjectMapperTest` present, but no dedicated IT for DB persistence — same gap HI-6774 already flagged |
+| LACS: baseGradePresetId snapshot at application creation | Done | Partial | PARTIAL | HI-6658; E2E 84686 asserts the snapshot on `funnel.merchant_project` but is skipped on stage/preprod/main (runs on ondemand only); `MerchantAtoMapperTest`/`MerchantProjectMapperTest` present, but no dedicated IT for DB persistence — same gap HI-6774 already flagged |
 | LACS: write-once enforcement + stop-200-on-dropped-write | Done | Done | GAP | HI-7856 (open PR#9337); `MerchantProjectControllerIT`, `MerchantProjectFacadeTest`, `MerchantProjectServiceTest` all present — best-covered of the open PRs |
 | HIDS: ARIX field16 additions | Done | Done | PARTIAL | HI-6657 (open PR#3715); `Field16PayloadSizeTest`, `MasterLineOnboardingServiceIT` present; still depends on CDS populating the source fields |
 | CDS: grade calculation, Tier cascade, max-loan-amount cap, MaxHIRM1 | N/A (Decisioning-owned) | N/A (Decisioning-owned) | PARTIAL (separate track) | Owned by Decisioning team, tracked under `CRD-17733`/`CRD-18201`, not this epic's ticket tree; `CreditDecisionHiclLockingTest` (merged) validates grade-locking via WireMock-mocked MPDS responses, `CreditDecisionMerchantPlanDefinitionMockHelper` provides the mock scaffolding — real cross-service (live MPDS+HMS+LACS+CDS) flow is still untested |
@@ -75,14 +77,20 @@ The epic spans 6 services (MPDS, HMS, LACS, HIDS, activity-events, CDS) plus 2 U
 
 ### High Priority
 - [HIGH] **Zero E2E automation for the entire VQ UI** (HI-6776–6782, HI-7723) — 6 shipped/in-review screens (nav, list, create, view, duplicate, assign) with no Playwright coverage in qa-automation. This is the single largest gap in the epic.
-- [HIGH] **HI-7857 AC1 (producer wiring) must not merge/enable tests early** — per the ticket's own sequencing note, landing it activates a live CDS query defect (missing `baseGradePresetId` argument on `ScoreBand.ranges`) that will 500 every HICL decision until CDS fixes its query. Any IT covering this path should stay gated behind that CDS fix.
-- [HIGH] **No live cross-service test of the "base grade locked at application, doesn't affect outstanding offers" rule.** LACS's write-once guard (HI-7856) and CDS's mocked locking test cover pieces in isolation; nothing exercises: assign preset → create app → reassign merchant's preset → verify the existing app/offer is untouched, end to end.
+- [HIGH] **Stale `@SkipUntil` gates in `HomeImprovementMerchantBaseGradeTest` (qa-automation#38176).** All three carry `skipBefore = "2027-12-31"`, so they are effectively permanent skips until edited:
+  - **84686** (snapshot onto `merchant_project`; skipped stage/preprod/main) cites CRD-20596 unmerged. The fix is now merged (credit-decision-srvc#10227 / HI-8096) — gate can likely be lifted once #10227 is confirmed deployed on the target env.
+  - **84960** (clone excludes preset; skipped stage/preprod/main) cites hms PR-5951 unmerged. It is now merged (HI-7857) — same: lift after confirming deployment.
+  - **84688** (full MPDS→HMS→LACS→CDS→HIDS→ARIX journey; skipped on **every** env including ondemand) cites CRD-17736 (engine returns null base-grade outcome, so HIDS onboards without `finalGrade`) and HIDS PR-3715. #3715 is **still open** and CRD-17736 status was not checked this refresh — this gate is still legitimate.
+- [HIGH] **Live CDS defect from HI-7857 AC1 is fixed, not yet proven end-to-end.** The `ranges()` missing-argument 500 (HI-8096) is fixed by credit-decision-srvc#10227 (merged), and HI-7857 producer wiring (#5951) is merged. HI-8096 is still In Validation, and no E2E has run against a deployed fix — 84686 is the natural verifier.
+- [HIGH] **Still no live test of "base grade locked at application; reassigning the merchant's preset doesn't affect outstanding offers."** 84686 checks the snapshot is written, but nothing assigns preset A → creates an app → reassigns preset B → verifies the existing app/offer still references A.
 
 ### Medium Priority
 - [MEDIUM] **HI-6774's T6 gap is still open**: no IT verifies the Kafka activity event actually publishes on assign/remove (only UT via mocked publisher).
 - [MEDIUM] **HI-6774's LACS persistence gap is still open**: no IT verifies `baseGradePresetId` is actually persisted to the `merchant_project` row end-to-end (only mapper-level UT).
 - [MEDIUM] **HI-7855's duplicate-race and URN-serialization ACs are unconfirmed** — PR#2833 has the right test *files* (`BaseGradePresetCreateIT`, `BaseGradePresetServiceTest`) but a filename-level check can't confirm the concurrency scenario or the URN-format assertion are actually in there; needs a direct read of the IT bodies.
-- [MEDIUM] **HI-7857's per-merchant rejection detail and franchise-clone re-validation (AC5/AC6) have no confirmed test** in PR#5951.
+- [MEDIUM] **HI-7857 AC5 (per-merchant rejection detail) is now covered at E2E** by 84687 (asserts `ineligibleMerchants` in the GraphQL error extension). **AC6 (franchise-clone re-validation) has no confirmed test**; 84960 covers only the clone *exclusion* of the preset, and is gated.
+- [MEDIUM] **HI-8096 has UT but no IT** — credit-decision-srvc#10227 changes only `HiClCreditDecisionServiceTest` and `MerchantPlanDefinitionServiceTest`; nothing in that PR exercises the `get-base-grade-preset-query.graphql` argument against a real or contract-tested MPDS, which is how the original defect escaped.
+- [MEDIUM] **qa-jenkins-jobs#3434 (suite registration) is still open**, so the merged E2E class has no Jenkins regression job yet.
 - [MEDIUM] **No test ticket or PR addresses EDW-queryable change logging** for merchant base-grade settings — a spec requirement with no owner anywhere in the ticket tree.
 
 ### Low Priority
@@ -143,20 +151,39 @@ The epic spans 6 services (MPDS, HMS, LACS, HIDS, activity-events, CDS) plus 2 U
 ### qa-automation (Decisioning-owned, separate track) — CRD-17733/CRD-18201
 **Status**: MERGED (PRs #33971, #34066, #34483, #34395 on master). **Tests**: `CreditDecisionHiclLockingTest` (`@Owner(DecisioningTeam.MSELA)`), `CreditDecisionMerchantPlanDefinitionMockHelper`, `ApplicationExtendedAttributesSto.lockedMerchantBaseGradePresetId`. **Verdict**: Real but narrow — validates CDS's own locking/consumption of a mocked base grade preset. Does not cover MPDS/HMS/LACS real integration, nor any HI-6336-ticket-tracked scenario. Not tied to any ticket in this epic's tree.
 
+### qa-automation#38176 — HI-6775: cross-service E2E for Merchant Base Grade (added 2026-09-29 refresh)
+**Status**: MERGED 2026-09-29T14:04Z (merge `e0d8617ceb`); 8 files, +768/−1. Also touches `HomeImprovementMerchantService`, `MerchantPlanDefinitionService`, `DecisioningQueries` (+ `.properties`), `HomeImprovementTeam`, `HomeImprovementFeature`, and adds suite `home-improvement-merchant-base-grade-tests.xml`. Companion: qa-automation-graphql#1165 (merged), qa-jenkins-jobs#3434 (open).
+**Tests** (`HomeImprovementMerchantBaseGradeTest`, `@Owner(HomeImprovementTeam.BRIMAN)`, `@Jira("HI-6775")`):
+- 84685 — MPDS preset authoring → HMS assignment → MerchantConfiguration read-back. Ungated.
+- 84687 — TIER_TWO preset assigned to a merchant without Tier 2 is rejected; asserts structured `ineligibleMerchants` extension and that no assignment persists. Ungated.
+- 84686 — HMS producer → LACS snapshot onto `funnel.merchant_project`. `@SkipUntil` stage/preprod/main (CRD-20596 — now fixed).
+- 84960 — merchant clone does not inherit the preset. `@SkipUntil` stage/preprod/main (hms#5951 — now merged).
+- 84688 — full MPDS→HMS→LACS→CDS→HIDS→ARIX field16 journey. `@SkipUntil` on all envs (CRD-17736, HIDS#3715 open).
+**Verdict**: 2 of 5 run everywhere; 2 have stale gates; 1 is legitimately blocked. API/backend only — no UI coverage.
+
+### credit-decision-srvc#10227 — HI-8096 / CRD-20596: re-land base-grade preset query fix (added 2026-09-29 refresh)
+**Status**: MERGED (re-land of the fix reverted in #10052). Adds the required `baseGradePresetId` argument to `ranges()` in `get-base-grade-preset-query.graphql`, plus `ServiceErrorCode` and `MerchantPlanDefinitionService` changes.
+**Tests**: `HiClCreditDecisionServiceTest`, `MerchantPlanDefinitionServiceTest` (UT only).
+**Verdict**: UT Done, IT GAP — no integration/contract test exercises the query against MPDS.
+
+### home-improvement-servicing-ui#138/#144/#154/#155 and ccp-portal-components-ui#304 — HI-6781/6782/6776/8087/7723 (added 2026-09-29 refresh)
+**Status**: #138 MERGED (manage-merchants search/selection/assignment); #144 OPEN (assigned-merchants tab); #154 DRAFT (nav entry in servicing-ui); #155 OPEN (config row + edit modal in Merchant Servicing, HI-8087); ccp-portal-components-ui#304 OPEN (Tools nav entry). **Tests**: N/A per classification. **E2E**: GAP for all.
+
 ## Key Decisions
 
 - **One preset per merchant, not per-tier.** `merchant_configuration` holds exactly one `base_grade_preset_id`; tiers live inside the preset's ranges (`containedTiers`). Resolved via HI-6781's investigation — no per-tier assignment UI or mutation exists or is planned.
 - **Presets are immutable and content-hashed.** There is no update/edit mutation — "Duplicate" is create-with-prefill (HI-6780), and an unmodified duplicate is *guaranteed* to collide on the content hash (name is not part of the hash).
 - **No archive mutation exists in either backend** (MPDS or HMS) — HI-7774 is blocked on a product decision before a BE card can even be written.
 - **MPDS and LACS had no epic ticket until this design review** — HI-7855 and HI-7856 were opened specifically to close that gap, per HI-7859's own framing correction.
-- **HI-7857 AC1 (producer wiring) is sequenced behind CDS.** Landing it activates a currently-dormant CDS query defect; do not treat "producer wiring merged" as a green light for enabling any E2E test that exercises the live CDS fetch.
+- **HI-7857 AC1 (producer wiring) was sequenced behind CDS — both have now merged.** #5951 (producer wiring) and credit-decision-srvc#10227 (the `ranges()` argument fix, HI-8096) are merged, but HI-8096 is still In Validation. Confirm the fix is deployed on the target env before treating the live CDS fetch as safe to exercise.
 - **Grade domain is 1–20** (not open-ended) — HI-7854 (closed) added the coverage requirement and DB CHECK; HI-6778's create form was sequenced to ship *after* HI-7854 so it would submit `maxBaseGrade=20` per row correctly.
 - **CDS/Decisioning-side coverage is a separate track**, owned by the Decisioning team under `CRD-17733`/`CRD-18201`, not reachable via this epic's Jira ticket tree or Dev-panel links — do not assume "CDS blocked, not started" (as HI-6774/HI-6775 both say) without checking that track directly; some CDS-side mocked coverage already exists and is merged.
 
 ## Notes for SDET
 
-- **No qa-automation branch or PR exists for this epic yet.** Starting E2E work means creating a new branch from master (`HI-6336-e2e-tests` or similar) — there is nothing to check out and continue.
+- **Backend E2E is merged** (qa-automation#38176, 2026-09-29) — new work should branch from current master and extend `HomeImprovementMerchantBaseGradeTest`, not start a parallel class. There is no open qa-automation PR for this epic; UI E2E (VQ base-grade screens) would need a new branch and page objects.
+- **First follow-ups**: (1) confirm credit-decision-srvc#10227 and hms#5951 are deployed to stage/preprod, then drop the stale `@SkipUntil` on 84686 and 84960 — and consider whether the remaining 84688 gate should stay, since the standing preference is to let tests fail rather than gate them on unshipped features; (2) get qa-jenkins-jobs#3434 merged so the suite runs on Jenkins.
 - **Test checklist**: HI-7886 (Open) — Phase 2 checklist covering the Tier 2 guard, HMS/MPDS/LACS hardening, and the full VQ UI, written 2026-08-20. HI-6774 (Closed) is the Phase 1 checklist for the original 4 backend stories — still useful for the gaps it flagged that remain open (T6 activity-event IT, LACS persistence IT).
 - **VQ UI lives in** `home-improvement-servicing-ui` (list/create/view/duplicate/assign pages) **and** `ccp-portal-components` (the Tools nav entry, HI-7723) — two repos, not one.
 - **Owner conventions observed in the code**: HMS base-grade work uses `@Owner` values tied to the HI merchant team; the CDS-side mocked locking test uses `@Owner(DecisioningTeam.MSELA)` — a different team entirely, worth knowing before assuming "the epic's tests" include it.
-- **Before writing new E2E tests for the tier guard or producer wiring**, re-check HI-7590/HI-7857's PR status — both were open as of this refresh, and the producer-wiring path specifically must not be exercised until CDS's query fix is confirmed (see Key Decisions).
+- **HI-7590/HI-7857 PRs (#5791, #5951) are merged** as of 2026-09-29. Before exercising the producer-wiring path on a shared env, confirm CDS's query fix (#10227) is deployed there (see Key Decisions).
