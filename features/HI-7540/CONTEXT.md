@@ -72,6 +72,8 @@ Classification of the PRs found: 1 service PR checked (creditline#5273), 1 schem
 - [HIGH] Spec contradiction on Paid Off bureau timing: "How it works" says Day 15; the table, user flow and Key Rules say the 8th business day.
 - [MEDIUM] VQ Permissions and audit tracking section is empty. No requirement to test yet.
 - [MEDIUM] Reason modal (Loan cancellation or Dispute) and system derivation of With/No Draws: no E2E.
+- [HIGH] Ticket vs code: HI-8322 acceptance criteria say "With Draws: no hard seasoning gate (agent procedure)" and add SEASONING_NOT_ELAPSED for Paid Off only, but PR #5273 tests enforce the gate for Cancellation and Dispute With Draws too. Raise with the HI-8322 author before E2E asserts either behavior.
+- [HIGH] Actor tracking: HI-8322 says "Every action records actor, timestamp, reason and CBR code". The code read from #5273 shows only `initiatedBy` (AGENT or SYSTEM) and one `lastModifiedBy` column, which is overwritten on each update, so the reporter would be lost when a different agent closes. Checklist rows 37 and 38 (HI-8727) cover this.
 - [MEDIUM] Design gap: no frames for Seasoning Period, Bureau Reporting Pending, Closed status, disabled Close Account, or No Draws. Ask the designer (Ashley) before writing Paid Off E2E.
 - [MEDIUM] Design inconsistency: order of Spectrum-refund checkbox vs bureau report, and report button label (`Proceed` vs `Close account`). See Design Notes.
 - [LOW] "Questions" section is empty.
@@ -123,6 +125,8 @@ Source: Figma "2026 Q1-Present (Current) - Home Improvement - by Feature", page 
 - Atlassian reads went through the claude.ai Atlassian connector because the `atlassian` MCP is on the retired v1 SSE endpoint.
 
 ## Notes for SDET
+- QA Assignee (customfield_11145) was set to ychauhan on all HI-7540 children and HI-8727 on 2026-11-17 (HI-8322, 8324, 8325, 8326, 8329 were Abhishek Mishra).
+- Test coverage checklist: HI-8727 (38 rows).
 - Closure is gated by a feature flag added in `ServerFeatureFlags` (#5273). Confirm its name and value per environment before E2E.
 - Paid Off paths need backdated PIF dates and automation timing; see the HICS statement gate and backdating notes before designing those tests.
 - Follow the VQ conventions in memory: Form/Select drop `data-auto`, use the servicing-ui under `/hi-servicing`.
