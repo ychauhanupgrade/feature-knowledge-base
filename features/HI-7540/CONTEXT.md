@@ -5,7 +5,7 @@ spec_url: https://credify.atlassian.net/wiki/spaces/PROD/pages/5614305300/HI+Acc
 status: in-development
 last_refreshed: 2026-11-17
 qa_automation_pr: ""
-test_checklist_ticket: ""
+test_checklist_ticket: HI-8727
 confluence_page_id: "6287327249"
 ---
 
