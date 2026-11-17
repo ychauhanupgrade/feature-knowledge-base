@@ -6,7 +6,7 @@ status: in-development
 last_refreshed: 2026-11-17
 qa_automation_pr: ""
 test_checklist_ticket: ""
-confluence_page_id: ""
+confluence_page_id: "6287327249"
 ---
 
 # HI-7540 — HI Account Closure in Agent Tool
