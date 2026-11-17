@@ -72,6 +72,8 @@ Classification of the PRs found: 1 service PR checked (creditline#5273), 1 schem
 - [HIGH] Spec contradiction on Paid Off bureau timing: "How it works" says Day 15; the table, user flow and Key Rules say the 8th business day.
 - [MEDIUM] VQ Permissions and audit tracking section is empty. No requirement to test yet.
 - [MEDIUM] Reason modal (Loan cancellation or Dispute) and system derivation of With/No Draws: no E2E.
+- [MEDIUM] Design gap: no frames for Seasoning Period, Bureau Reporting Pending, Closed status, disabled Close Account, or No Draws. Ask the designer (Ashley) before writing Paid Off E2E.
+- [MEDIUM] Design inconsistency: order of Spectrum-refund checkbox vs bureau report, and report button label (`Proceed` vs `Close account`). See Design Notes.
 - [LOW] "Questions" section is empty.
 
 ## PR Analysis
@@ -87,6 +89,34 @@ Classification of the PRs found: 1 service PR checked (creditline#5273), 1 schem
 - MasterLineMutationResolverIT
 
 **UT/IT gaps**: not yet reviewed line by line. Run `/feature-context analyze-pr HI-7540 home-improvement-creditline-srvc#5273` for the detailed pass.
+
+## Design Notes (Figma, guidance only)
+
+Source: Figma "2026 Q1-Present (Current) - Home Improvement - by Feature", page "Account closure (Ashley)" (node 11069:57869), Summary tab frames, reviewed from exports on 2026-11-17. Frames mix iterations and the shipped UI may differ; use for test design and copy hints, not as assertions of record.
+
+**Cancellation / Dispute**
+- Report modal: reason dropdown with `Loan cancellation` and `Dispute`; later iteration adds "credit report will automatically be sent to the Bureau" and a green `Proceed`.
+- After reporting: "Credit report sent to bureau" modal ("You can now proceed to close this account. This action can't be undone.").
+- Close modal: "To close this account, you must apply the credits in spectrum first." plus checkbox "I verify that I reviewed Spectrum and checked for merchant refunds applied if applicable".
+
+**Paid Off**
+- Close modal: reason dropdown with only `Paid Off Account`; checkbox "I verify that I am permanently closing this account and this action cannot be undone."
+- Second modal "Confirm account closure" ("…cannot be reopened after closure.") with `Close account`.
+
+**State and row**
+- Spectrum Account Status row: `Open` chip with a `Close Account` button; pending state is a yellow `Pending Closure` chip with "Account Closure Initiated: <date> at <time>" and a reason line.
+
+**Design inconsistencies to confirm with the designer**
+- One iteration puts the Spectrum-refund checkbox on the bureau-report modal, reversing the spec order (report first, verify refunds at close).
+- Report modal button is `Close account` (red) in one frame and `Proceed` (green) in another.
+- Paid Off confirms twice (checkbox modal, then confirm modal); spec has one confirm modal with a checkbox.
+- "Once merchant funds are received this account will be closed" and "Waiting for merchant funds to be received" look like the old automatic flow.
+
+**Not designed in the reviewed frames**
+- Seasoning Period with PIF + 15 end date; Bureau Reporting Pending (Days 0 to 15); Close Account after Day 15.
+- Closed status with timestamp and reason.
+- Disabled or locked Close Account state.
+- No Draws variant, error and validation states.
 
 ## Key Decisions
 - The repo used is `ychauhanupgrade/feature-knowledge-base` (the command text says `amishraupgrade`, which is not this user's account).
